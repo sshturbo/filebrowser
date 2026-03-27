@@ -63,8 +63,12 @@
           </div>
         </div>
       </div>
+      <div v-if="totalFileCount > 0" class="global-progress">
+        <span class="global-progress-text">{{ $t('prompts.uploadProgress', { completed: completedCount, total: totalFileCount }) }} — {{ globalProgress }}%</span>
+        <progress :value="completedCount" :max="totalFileCount" class="global-progress-bar"></progress>
+      </div>
       <div class="upload-list">
-        <div v-for="file in files" :key="file.id" class="upload-item">
+        <div v-for="file in sortedFiles" :key="file.id" class="upload-item">
           <i class="material-icons file-icon">{{ file.type === "directory" ? "folder" : "insert_drive_file" }}</i> <!-- eslint-disable-line @intlify/vue-i18n/no-raw-text -->
           <div class="file-info">
             <p class="file-name">{{ file.name }}</p>
@@ -98,7 +102,7 @@
             </button>
             <button v-if="file.status === 'conflict'" @click="handleConflictAction(file)" class="action"
               :aria-label="$t('general.replace')" :title="$t('general.replace')">
-              <i class="material-icons">sync_problem</i>
+              <i class="material-icons">warning</i>
             </button>
             <button @click="cancelUpload(file.id)" class="action" :aria-label="$t('general.cancel')"
               :title="$t('general.cancel')">
@@ -119,9 +123,20 @@
       :aria-label="$t('buttons.resumeAll')" :title="$t('buttons.resumeAll')">
       {{ $t("buttons.resumeAll") }}
     </button>
+    <button v-if="hasErrors" @click="retryAllErrors" class="button button--flat"
+      :aria-label="$t('buttons.retryAllErrors', { count: errorCount })"
+      :title="$t('buttons.retryAllErrors', { count: errorCount })">
+      {{ $t("buttons.retryAllErrors", { count: errorCount }) }}
+    </button>
     <button v-if="hasConflicts" @click="replaceAll" class="button button--flat button--red"
-      :aria-label="$t('buttons.replaceAll')" :title="$t('buttons.replaceAll')">
-      {{ $t("buttons.replaceAll") }}
+      :aria-label="$t('buttons.replaceAll', { count: conflictCount })"
+      :title="$t('buttons.replaceAll', { count: conflictCount })">
+      {{ $t("buttons.replaceAll", { count: conflictCount }) }}
+    </button>
+    <button v-if="hasConflicts" @click="skipAll" class="button button--flat"
+      :aria-label="$t('buttons.skipAll', { count: conflictCount })"
+      :title="$t('buttons.skipAll', { count: conflictCount })">
+      {{ $t("buttons.skipAll", { count: conflictCount }) }}
     </button>
     <button @click="clearCompleted" class="button button--flat" :disabled="!hasClearable"
       :aria-label="$t('buttons.clearCompleted')" :title="$t('buttons.clearCompleted')">
@@ -369,6 +384,53 @@ export default {
         .forEach((file) => uploadManager.retry(file.id, true));
     };
 
+    const conflictCount = computed(() =>
+      files.value.filter((f) => f.status === "conflict").length
+    );
+
+    const errorCount = computed(() =>
+      files.value.filter((f) => f.status === "error").length
+    );
+
+    const hasErrors = computed(() =>
+      files.value.some((f) => f.status === "error")
+    );
+
+    const totalFileCount = computed(() =>
+      files.value.filter((f) => f.type !== "directory").length
+    );
+
+    const completedCount = computed(() =>
+      files.value.filter((f) => f.status === "completed").length
+    );
+
+    const globalProgress = computed(() =>
+      totalFileCount.value > 0
+        ? Math.round((completedCount.value / totalFileCount.value) * 100)
+        : 0
+    );
+
+    const statusPriority = { completed: 0, pending: 1, paused: 2, uploading: 3, error: 4, conflict: 5 };
+    const sortedFiles = computed(() =>
+      [...files.value].sort((a, b) => {
+        const pa = statusPriority[a.status] ?? 3;
+        const pb = statusPriority[b.status] ?? 3;
+        return pa - pb;
+      })
+    );
+
+    const skipAll = () => {
+      files.value
+        .filter((f) => f.status === "conflict")
+        .forEach((f) => uploadManager.cancel(f.id));
+    };
+
+    const retryAllErrors = () => {
+      files.value
+        .filter((f) => f.status === "error")
+        .forEach((f) => uploadManager.retry(f.id));
+    };
+
     const close = () => {
       mutations.closeTopPrompt();
     };
@@ -612,6 +674,15 @@ export default {
       canResumeAll,
       hasConflicts,
       replaceAll,
+      conflictCount,
+      errorCount,
+      hasErrors,
+      totalFileCount,
+      completedCount,
+      globalProgress,
+      sortedFiles,
+      skipAll,
+      retryAllErrors,
       handleConflictAction,
       maxConcurrentUpload,
       uploadChunkSizeMb,
@@ -707,6 +778,24 @@ export default {
 
 .spacer {
   flex-grow: 1;
+}
+
+.global-progress {
+  padding: 0.5em 1em 0.2em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+
+.global-progress-text {
+  font-size: 0.85em;
+  color: #777;
+}
+
+.global-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
 }
 
 .card.floating {
