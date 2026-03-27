@@ -145,6 +145,7 @@
     "toggleSidebar": "Toggle sidebar",
     "pauseAll": "Pause all",
     "resumeAll": "Resume all",
+    "replaceAll": "Replace all conflicts",
     "clearCompleted": "Clear completed",
     "showMore": "Show Advanced Options",
     "showLess": "Hide Advanced Options",

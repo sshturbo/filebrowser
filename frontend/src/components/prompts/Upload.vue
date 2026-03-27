@@ -119,6 +119,10 @@
       :aria-label="$t('buttons.resumeAll')" :title="$t('buttons.resumeAll')">
       {{ $t("buttons.resumeAll") }}
     </button>
+    <button v-if="hasConflicts" @click="replaceAll" class="button button--flat button--red"
+      :aria-label="$t('buttons.replaceAll')" :title="$t('buttons.replaceAll')">
+      {{ $t("buttons.replaceAll") }}
+    </button>
     <button @click="clearCompleted" class="button button--flat" :disabled="!hasClearable"
       :aria-label="$t('buttons.clearCompleted')" :title="$t('buttons.clearCompleted')">
       {{ $t("buttons.clearCompleted") }}
@@ -354,6 +358,16 @@ export default {
         !canPauseAll.value &&
         files.value.some((file) => file.status === "paused")
     );
+
+    const hasConflicts = computed(() =>
+      files.value.some((file) => file.status === "conflict")
+    );
+
+    const replaceAll = () => {
+      files.value
+        .filter((file) => file.status === "conflict")
+        .forEach((file) => uploadManager.retry(file.id, true));
+    };
 
     const close = () => {
       mutations.closeTopPrompt();
@@ -596,6 +610,8 @@ export default {
       renameUploadFolder,
       canPauseAll,
       canResumeAll,
+      hasConflicts,
+      replaceAll,
       handleConflictAction,
       maxConcurrentUpload,
       uploadChunkSizeMb,

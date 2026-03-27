@@ -14,6 +14,7 @@
     "generateNewOtp": "Redefinir e gerar um novo código de dois fatores",
     "pauseAll": "Pausar tudo",
     "resumeAll": "Retomar tudo",
+    "replaceAll": "Substituir todos os conflitos",
     "clearCompleted": "Limpar concluído",
     "openParentFolder": "Abrir a pasta principal",
     "selectedCount": "Número de itens selecionados para executar uma ação",
